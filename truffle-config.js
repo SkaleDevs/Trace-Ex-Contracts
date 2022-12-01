@@ -1,6 +1,6 @@
 require("dotenv").config();
 const HDWalletProvider = require("@truffle/hdwallet-provider");
-const { INFURA_API_KEY, MNEMONIC } = process.env;
+const { ALCHEMY_API_KEY, MNEMONIC } = process.env;
 
 module.exports = {
   plugins: ["truffle-security"],
@@ -8,9 +8,9 @@ module.exports = {
   contracts_build_directory: "./build",
   migrations_directory: "./migrations",
   networks: {
-    goerli: {
-      provider: () => new HDWalletProvider(MNEMONIC, INFURA_API_KEY),
-      network_id: "5",
+    mumbai: {
+      provider: () => new HDWalletProvider(MNEMONIC, ALCHEMY_API_KEY),
+      network_id: "80001",
       gas: 10000000, // Max is 10000000
       confirmations: 4,
       timeoutBlocks: 200,
