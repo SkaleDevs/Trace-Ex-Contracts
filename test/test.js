@@ -4,7 +4,7 @@ const Web3 = require("web3");
 const fs = require("fs");
 
 function getWeb3() {
-  return new Web3("http://localhost:7545");
+  return new Web3("https://polygon-mumbai.g.alchemy.com/v2/KIQV-emSTQX0oOQD9yEtGo3wFDIwlh32");
 }
 
 function getSupplyChainContract(web3) {
@@ -17,7 +17,7 @@ function getSupplyChainContract(web3) {
     abi,
     "0x8f38648879e643981fF2fe4E67266Ba753664e47", // contract address
     {
-      from: "0x53964CAde3Ab8343b1e02f0C1AB731aD8C1EFFb7", // local test account
+      from: "0x616225F50fA2b77F5e8e592468fa1cE37ba46a3a", // local test account
       gas: 6721975,
     }
   );
