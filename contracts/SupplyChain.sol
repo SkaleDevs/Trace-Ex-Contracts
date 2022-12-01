@@ -5,18 +5,9 @@ pragma solidity >=0.4.25 <0.9.0;
 import "./Products.sol";
 import "./Users.sol";
 
-/**
- * @title SupplyChain
- * @author Suresh Konakanchi | GeekyAnts
- * @dev Implements the transparency in the supply chain to
- * understand the actual user & the flow of the products/medicines
- */
+
 contract SupplyChain is Users, Products {
-    /**
-     * @dev Create a new SupplyChain with the provided 'manufacturer'
-     * @param name_ Name of the manufacturer
-     * @param email_ Email of the manufacturer
-     */
+    // on the deployment of a contract the manufacturer is created by itself
     constructor(string memory name_, string memory email_) {
         Types.UserDetails memory mn_ = Types.UserDetails({
             role: Types.UserRole.Manufacturer,
@@ -27,28 +18,17 @@ contract SupplyChain is Users, Products {
         add(mn_);
     }
 
-    /**
-     * @dev To get All the products list.
-     * @return productsList All the products that were added so far
-     */
+    // get all the products that exist in the inventory
     function getAllProducts() public view returns (Types.Product[] memory) {
         return products;
     }
 
-    /**
-     * @dev To get all the products linked a particular user
-     * @return productsList All the products that were linked to current logged-in user
-     */
+    // to get only the products linked to my account
     function getMyProducts() public view returns (Types.Product[] memory) {
         return getUserProducts();
     }
 
-    /**
-     * @dev Get single product
-     * @param barcodeId_ Unique ID of the product
-     * @return product_ Details of the product & it's timeline
-     * @return history_ product lifecycle, who purchased when
-     */
+   // get a specific product
     function getSingleProduct(string memory barcodeId_)
         public
         view
@@ -57,11 +37,7 @@ contract SupplyChain is Users, Products {
         return getSpecificProduct(barcodeId_);
     }
 
-    /**
-     * @dev Adds new product to the products list
-     * @param product_ unique ID of the product
-     * @param currentTime_ Current Date, Time in epoch (To store when it got added)
-     */
+    // only manufacturer can add the product
     function addProduct(Types.Product memory product_, uint256 currentTime_)
         public
         onlyManufacturer
@@ -69,12 +45,7 @@ contract SupplyChain is Users, Products {
         addAProduct(product_, currentTime_);
     }
 
-    /**
-     * @dev Transfer the ownership
-     * @param partyId_ Purchase user's account address
-     * @param barcodeId_ unique ID of the product
-     * @param currentTime_ Current Date Time in epoch to keep track of the history
-     */
+    // the logged in user can sell the product
     function sellProduct(
         address partyId_,
         string memory barcodeId_,
@@ -85,19 +56,19 @@ contract SupplyChain is Users, Products {
         sell(partyId_, barcodeId_, party_, currentTime_);
     }
 
-    /**
-     * @dev To add an user to my account, which can be used in future at the time of selling
-     * @param user_ Details of the user that need to be added
-     */
+    // to add a user under the reign of the logged in user
     function addParty(Types.UserDetails memory user_) public {
         addparty(user_, msg.sender);
     }
+    
+    function checkDeliv(string memory barcodeId_, uint256 currentTime_) public {
+        checkdelivery(barcodeId_,currentTime_,getPartyDetails(msg.sender));
+    }
 
-    /**
-     * @dev To get details of the user
-     * @param id_ User Id for whom the details were needed
-     * @return user_ Details of the current logged-in User
-     */
+    function rec(string memory barcodeId_, uint256 currentTime_)public{
+        recieve(barcodeId_,currentTime_,getPartyDetails(msg.sender));
+    }
+    // get a specific user detail
     function getUserDetails(address id_)
         public
         view
@@ -106,18 +77,12 @@ contract SupplyChain is Users, Products {
         return getPartyDetails(id_);
     }
 
-    /**
-     * @dev To get details of the current logged-in user
-     * @return user_ Details of the current logged-in User
-     */
+    // to get the detail of the logged in user
     function getMyDetails() public view returns (Types.UserDetails memory) {
         return getPartyDetails(msg.sender);
     }
 
-    /**
-     * @dev To get List of users that were added by the current logged-in user
-     * @return usersList_ List of UserDetail objects will be returned (Which are added by same user)
-     */
+    // to get all the user under the logged in user reign
     function getMyUsersList()
         public
         view

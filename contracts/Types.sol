@@ -2,11 +2,7 @@
 pragma experimental ABIEncoderV2;
 pragma solidity >=0.4.25 <0.9.0;
 
-/**
- * @title Types
- * @author Suresh Konakanchi
- * @dev All the custom types that we have used in Supply Chain
- */
+// all the different structures or types that have been used in our contract
 library Types {
     enum UserRole {
         Manufacturer, // 0
@@ -32,7 +28,8 @@ library Types {
 
     struct UserHistory {
         address id_; // account Id of the user
-        uint256 date; // Added, Purchased date in epoch in UTC timezone
+        uint256 dispdate; // Dispatched
+        uint256 recdate; // Recieved
     }
 
     struct ProductHistory {

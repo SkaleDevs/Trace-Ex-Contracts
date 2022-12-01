@@ -4,11 +4,7 @@ pragma solidity >=0.4.25 <0.9.0;
 
 import "./Types.sol";
 
-/**
- * @title Users
- * @author Suresh Konakanchi | GeekyAnts
- * @dev Library for managing addresses assigned to a particular user with a particular role.
- */
+// all the user related actions are done here
 contract Users {
     mapping(address => Types.UserDetails) internal users;
     mapping(address => Types.UserDetails[]) internal manufacturerSuppliersList;
@@ -18,10 +14,7 @@ contract Users {
     event NewUser(string name, string email, Types.UserRole role);
     event LostUser(string name, string email, Types.UserRole role);
 
-    /**
-     * @dev To add a particular user to a particular role
-     * @param user UserDetails that need to be added
-     */
+    //to add a new user
     function add(Types.UserDetails memory user) internal {
         require(user.id_ != address(0));
         require(!has(user.role, user.id_), "Same user with same role exists");
@@ -29,11 +22,7 @@ contract Users {
         emit NewUser(user.name, user.email, user.role);
     }
 
-    /**
-     * @dev To add a particular user to a current logged-in user's correspondence list
-     * @param user UserDetails that need to be added
-     * @param myAccount User address who is trying to add the other user
-     */
+    // to add a party under the logged in user
     function addparty(Types.UserDetails memory user, address myAccount)
         internal
     {
@@ -66,11 +55,7 @@ contract Users {
         }
     }
 
-    /**
-     * @dev To get List of users that were added by the current logged-in user
-     * @param id_ User address who is trying to get his/her party details list
-     * @return usersList_ List of UserDetail objects will be returned (Which are added by same user)
-     */
+    // to get the list of the usres that are linked to the logged in user
     function getMyPartyList(address id_)
         internal
         view
@@ -89,11 +74,7 @@ contract Users {
         }
     }
 
-    /**
-     * @dev To get details of the user
-     * @param id_ User Id for whom the details were needed
-     * @return user_ Details of the current logged-in User
-     */
+    // to get the details of the users that are linked to the logged in user
     function getPartyDetails(address id_)
         internal
         view
@@ -104,11 +85,7 @@ contract Users {
         return get(id_);
     }
 
-    /**
-     * @dev To get user details based on the address
-     * @param account User address that need to be linked to user details
-     * @return user_ Details of a registered user
-     */
+    // to get the details of a particular user
     function get(address account)
         internal
         view
@@ -118,11 +95,7 @@ contract Users {
         return users[account];
     }
 
-    /**
-     * @dev To remove a particular user from a particular role
-     * @param role User role for which he/she has to be dismissed for
-     * @param account User Address that need to be removed
-     */
+    // to remove the specified user
     function remove(Types.UserRole role, address account) internal {
         require(account != address(0));
         require(has(role, account));
@@ -134,10 +107,7 @@ contract Users {
 
     // Internal Functions
 
-    /**
-     * @dev To check if the party/user exists or not
-     * @param account Address of the user/party to be verified
-     */
+    //to check if the party exists
     function isPartyExists(address account) internal view returns (bool) {
         bool existing_;
         if (account == address(0)) return existing_;
@@ -145,12 +115,7 @@ contract Users {
         return existing_;
     }
 
-    /**
-     * @dev check if an account has this role
-     * @param role UserRole that need to be checked
-     * @param account Account address that need to be verified
-     * @return bool whether the same user with same role exists or not
-     */
+    // the user with the same role exists or not
     function has(Types.UserRole role, address account)
         internal
         view
@@ -163,9 +128,7 @@ contract Users {
 
     // Modifiers
 
-    /**
-     * @notice To check if the party is manufacturer
-     */
+ // to check if the user is the manufacturer or not
     modifier onlyManufacturer() {
         require(msg.sender != address(0), "Sender's address is Empty");
         require(users[msg.sender].id_ != address(0), "User's address is Empty");

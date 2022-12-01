@@ -4,18 +4,14 @@ pragma solidity >=0.4.25 <0.9.0;
 
 import "./Types.sol";
 
-/**
- * @title Products
- * @author Suresh Konakanchi | GeekyAnts
- * @dev Library for managing products
- */
+
 contract Products {
     Types.Product[] internal products;
     mapping(string => Types.Product) internal product;
     mapping(address => string[]) internal userLinkedProducts;
     mapping(string => Types.ProductHistory) internal productHistory;
 
-    // Events
+    // List of events
 
     event NewProduct(
         string name,
@@ -24,6 +20,9 @@ contract Products {
         string barcodeId,
         uint256 manDateEpoch,
         uint256 expDateEpoch
+    );
+    event daysLeft(
+        uint256 time
     );
     event ProductOwnershipTransfer(
         string name,
@@ -36,10 +35,7 @@ contract Products {
 
     // Contract Methods
 
-    /**
-     * @dev To get all the products linked a particular user
-     * @return productsList All the products that were linked to current logged-in user
-     */
+   //returns all the products that are owned by the logged in user
     function getUserProducts() internal view returns (Types.Product[] memory) {
         string[] memory ids_ = userLinkedProducts[msg.sender];
         Types.Product[] memory products_ = new Types.Product[](ids_.length);
@@ -49,12 +45,7 @@ contract Products {
         return products_;
     }
 
-    /**
-     * @dev Get single product
-     * @param barcodeId_ Unique ID of the product
-     * @return product_ Details of the product & it's timeline
-     * @return history_ product lifecycle, who purchased when
-     */
+   //get details of a specific product
     function getSpecificProduct(string memory barcodeId_)
         internal
         view
@@ -63,24 +54,25 @@ contract Products {
         return (product[barcodeId_], productHistory[barcodeId_]);
     }
 
-    /**
-     * @dev Adds new product to the products list
-     * @param product_ unique ID of the product
-     * @param currentTime_ Current Date, Time in epoch (To store when it got added)
-     */
+   // manufacturer can add the product
     function addAProduct(Types.Product memory product_, uint256 currentTime_)
         internal
         productNotExists(product_.barcodeId)
     {
         require(
             product_.manufacturer == msg.sender,
-            "Only manufacturer can add"
+            "You are not the manufacturer"
         );
+         if(product_.expDateEpoch>currentTime_){
+            transferOwnership(msg.sender,0xc929B634150947a653FbDd36cAb4b10f00EffbBF,product_.barcodeId);// dump center
+            revert("Product expired!");
+        }//432000000 (5days)
         products.push(product_);
         product[product_.barcodeId] = product_;
         productHistory[product_.barcodeId].manufacturer = Types.UserHistory({
             id_: msg.sender,
-            date: currentTime_
+            dispdate: currentTime_,
+            recdate: currentTime_
         });
         userLinkedProducts[msg.sender].push(product_.barcodeId);
         emit NewProduct(
@@ -93,12 +85,7 @@ contract Products {
         );
     }
 
-    /**
-     * @dev Transfer the ownership
-     * @param partyId_ Purchase user's account address
-     * @param barcodeId_ unique ID of the product
-     * @param currentTime_ Current Date Time in epoch to keep track of the history
-     */
+    //logged in user wants to transfer the ownership
     function sell(
         address partyId_,
         string memory barcodeId_,
@@ -106,11 +93,15 @@ contract Products {
         uint256 currentTime_
     ) internal productExists(barcodeId_) {
         Types.Product memory product_ = product[barcodeId_];
-
+        if(product_.expDateEpoch>currentTime_){
+            transferOwnership(msg.sender,0xc929B634150947a653FbDd36cAb4b10f00EffbBF,barcodeId_);
+            revert("Product expired!");
+        }
         // Updating product history
         Types.UserHistory memory userHistory_ = Types.UserHistory({
             id_: party_.id_,
-            date: currentTime_
+            dispdate: currentTime_,
+            recdate:0
         });
         if (Types.UserRole(party_.role) == Types.UserRole.Supplier) {
             productHistory[barcodeId_].supplier = userHistory_;
@@ -119,12 +110,12 @@ contract Products {
         } else if (Types.UserRole(party_.role) == Types.UserRole.Customer) {
             productHistory[barcodeId_].customers.push(userHistory_);
         } else {
-            // Not in the assumption scope
-            revert("Not valid operation");
+            
+            revert("Invalide role");
         }
-        transferOwnership(msg.sender, partyId_, barcodeId_); // To transfer ownership from seller to buyer
+        transferOwnership(msg.sender, partyId_, barcodeId_); 
 
-        // Emiting event
+
         emit ProductOwnershipTransfer(
             product_.name,
             product_.manufacturerName,
@@ -135,34 +126,43 @@ contract Products {
         );
     }
 
+    //check delivery status and if surpasses the due date then ownership transfer to anonymous
+
+    function checkdelivery(string memory barcodeId_, uint256 currentTime_, Types.UserDetails memory me)internal {
+             if (Types.UserRole(me.role) == Types.UserRole.Supplier  &&  productHistory[barcodeId_].supplier.recdate==0 &&((currentTime_- productHistory[barcodeId_].supplier.dispdate)>432000000) ){
+            transferOwnership(msg.sender,0x89d811672a22BF893eb1b2D27A393eb354DE04D4 , barcodeId_);
+        }
+         else if (Types.UserRole(me.role) == Types.UserRole.Vendor && productHistory[barcodeId_].vendor.recdate==0 &&((currentTime_- productHistory[barcodeId_].vendor.dispdate)>432000000) ) {
+            transferOwnership(msg.sender,0x89d811672a22BF893eb1b2D27A393eb354DE04D4 , barcodeId_);
+        } 
+         else {
+             emit daysLeft(currentTime_- productHistory[barcodeId_].vendor.dispdate);
+        }  
+    }
+
+    // update the recdate on recieval
+      function recieve(string memory barcodeId_, uint256 currentTime_, Types.UserDetails memory me)internal {
+             if (Types.UserRole(me.role) == Types.UserRole.Supplier  &&  productHistory[barcodeId_].supplier.recdate==0 && ((currentTime_- productHistory[barcodeId_].supplier.dispdate)<=432000000) ){
+            productHistory[barcodeId_].supplier.recdate=currentTime_;
+        }
+         else if (Types.UserRole(me.role) == Types.UserRole.Vendor && productHistory[barcodeId_].vendor.recdate==0 && ((currentTime_- productHistory[barcodeId_].vendor.dispdate)<=432000000) ) {
+            productHistory[barcodeId_].vendor.recdate=currentTime_;
+        } 
+    }
     // Modifiers
 
-    /**
-     * @notice To check if product exists
-     * @param id_ product barcode ID
-     */
+    //to check if the product exists 
     modifier productExists(string memory id_) {
         require(!compareStrings(product[id_].barcodeId, ""));
         _;
     }
-
-    /**
-     * @notice To check if product doesn not exists
-     * @param id_ product barcode ID
-     */
+     // to check if a product does not exist
     modifier productNotExists(string memory id_) {
         require(compareStrings(product[id_].barcodeId, ""));
         _;
     }
 
-    // Internal functions
-
-    /**
-     * @dev To remove the product from current list once sold
-     * @param sellerId_ Seller's metamask address
-     * @param buyerId_ Buyer's metamask address
-     * @param productId_ unique ID of the product
-     */
+    // ownership transfer that is internally used here itself
     function transferOwnership(
         address sellerId_,
         address buyerId_,
@@ -177,7 +177,7 @@ contract Products {
                 break;
             }
         }
-        assert(matchIndex_ < sellerProducts_.length); // Match found
+        assert(matchIndex_ < sellerProducts_.length); 
         if (sellerProducts_.length == 1) {
             delete userLinkedProducts[sellerId_];
         } else {
@@ -189,12 +189,7 @@ contract Products {
         }
     }
 
-    /**
-     * @notice Internal function which doesn't alter any stage or read any data
-     * Used to compare the string operations. Little costly in terms of gas fee
-     * @param a string-1 that is to be compared
-     * @param b string-2 that is to be compared
-     */
+    // to compare two string here internally
     function compareStrings(string memory a, string memory b)
         internal
         pure
