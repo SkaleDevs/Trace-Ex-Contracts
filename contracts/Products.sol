@@ -63,7 +63,7 @@ contract Products {
             product_.manufacturer == msg.sender,
             "You are not the manufacturer"
         );
-         if(product_.expDateEpoch>currentTime_){
+         if(product_.expDateEpoch<currentTime_){
             transferOwnership(msg.sender,0xc929B634150947a653FbDd36cAb4b10f00EffbBF,product_.barcodeId);// dump center
             revert("Product expired!");
         }//432000000 (5days)
@@ -93,7 +93,7 @@ contract Products {
         uint256 currentTime_
     ) internal productExists(barcodeId_) {
         Types.Product memory product_ = product[barcodeId_];
-        if(product_.expDateEpoch>currentTime_){
+        if(product_.expDateEpoch<currentTime_){
             transferOwnership(msg.sender,0xc929B634150947a653FbDd36cAb4b10f00EffbBF,barcodeId_);
             revert("Product expired!");
         }
